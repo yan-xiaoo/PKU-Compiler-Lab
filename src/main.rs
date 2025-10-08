@@ -1,7 +1,7 @@
 use std::io::Result;
 
 mod function_ast;
-mod assembly;
+mod ass_gen;
 mod ir_gen;
 
 
@@ -50,8 +50,9 @@ fn main() -> Result<()> {
     };
 
     if args[1] == "-riscv" {
-        let mut compiler = assembly::Codegen::new(&ir_program);
-        compiler.gen_program().expect("IR generation fails");
+        let mut compiler = ass_gen::AssGen::new(&ir_program);
+        // 如果生成失败，程序会直接崩溃的，不用担心
+        compiler.generate_program();
         std::fs::write(output, compiler.finish())?;
     }
 

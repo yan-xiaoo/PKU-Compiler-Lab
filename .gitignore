@@ -3,3 +3,5 @@
 *.koopa
 *.code-workspace
 .vscode/**
+*.s
+*.o
