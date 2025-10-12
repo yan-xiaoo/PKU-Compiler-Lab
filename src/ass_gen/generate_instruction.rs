@@ -33,6 +33,29 @@ impl<'p> AssGen<'p> {
         writeln!(self.out, "\tsub\t{},{},{}", result, lhr, rhr).unwrap();
     }
 
+    /// 创建一个加法的指令
+    /// 计算 lhr 寄存器 + rhr 寄存器的值，将其存入 result 寄存器中
+    pub(crate) fn add_inst(&mut self, result: &str, lhr: &str, rhr: &str) {
+        writeln!(self.out, "\tadd\t{},{},{}", result, lhr, rhr).unwrap();
+    }
+
+    /// 创建一个乘法的指令
+    /// 计算 lhr 寄存器 * rhr 寄存器的值，将其存入 result 寄存器中
+    pub(crate) fn mul_inst(&mut self, result: &str, lhr: &str, rhr: &str) {
+        writeln!(self.out, "\tmul\t{},{},{}", result, lhr, rhr).unwrap();
+    }
+
+    /// 创建一个除法的指令
+    /// 计算 lhr 寄存器 / rhr 寄存器的值，将其存入 result 寄存器中
+    pub(crate) fn div_inst(&mut self, result: &str, lhr: &str, rhr: &str) {
+        writeln!(self.out, "\tdiv\t{},{},{}", result, lhr, rhr).unwrap();
+    }
+    
+    /// 创建一个取余数的指令
+    /// 计算 lhr 寄存器 % rhr 寄存器的值，将其存入 result 寄存器中
+    pub(crate) fn mod_inst(&mut self, result: &str, lhr: &str, rhr: &str) {
+        writeln!(self.out, "\trem\t{},{},{}", result, lhr, rhr).unwrap();
+    }
 
     /// 创建一个 neq 0 比较指令
     /// 如果 register 的值不是 0，存储 1 到 register 寄存器中；否则，存储 0 到 register 中。

@@ -50,8 +50,21 @@ Stmt: Stmt = {
 };
 
 Exp: Exp = {
-    <unary_exp: UnaryExp> => Exp {<>}
+    <add_exp: AddExp> => Exp {<>}
 };
+
+AddExp: AddExp = {
+    <mul_exp: MulExp> => AddExp::MulExp(<>),
+    <add_exp: AddExp> "+" <mul_exp: MulExp> => AddExp::CompoundAddExp(Box::new(add_exp), mul_exp, AddOp::Plus),
+    <add_exp: AddExp> "-" <mul_exp: MulExp> => AddExp::CompoundAddExp(Box::new(add_exp), mul_exp, AddOp::Minus)
+}
+
+MulExp: MulExp = {
+    <unary_exp: UnaryExp> => MulExp::UnaryExp(<>),
+    <mul_exp: MulExp> "*" <unary_exp: UnaryExp> => MulExp::CompoundMulExp(Box::new(mul_exp), unary_exp, MulOp::Mul),
+    <mul_exp: MulExp> "/" <unary_exp: UnaryExp> => MulExp::CompoundMulExp(Box::new(mul_exp), unary_exp, MulOp::Div),
+    <mul_exp: MulExp> "%" <unary_exp: UnaryExp> => MulExp::CompoundMulExp(Box::new(mul_exp), unary_exp, MulOp::Mod)
+}
 
 UnaryExp: UnaryExp = {
     <primary_exp: PrimaryExp> => UnaryExp::PrimaryExp(<>),

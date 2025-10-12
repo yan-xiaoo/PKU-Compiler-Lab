@@ -45,7 +45,7 @@ pub struct Stmt {
 
 #[derive(Debug)]
 pub struct Exp {
-    pub unary_exp: UnaryExp
+    pub add_exp: AddExp
 }
 
 #[derive(Debug)]
@@ -67,12 +67,56 @@ pub enum UnaryOp {
     Not
 }
 
+#[derive(Debug)]
+pub enum MulOp {
+    Mul,
+    Div,
+    Mod
+}
+
+#[derive(Debug)]
+pub enum MulExp {
+    UnaryExp(UnaryExp),
+    CompoundMulExp(Box<MulExp>, UnaryExp, MulOp)
+}
+
+#[derive(Debug)]
+pub enum AddOp {
+    Plus,
+    Minus
+}
+
+#[derive(Debug)]
+pub enum AddExp {
+    MulExp(MulExp),
+    CompoundAddExp(Box<AddExp>, MulExp, AddOp)
+}
+
 impl std::fmt::Display for UnaryOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Plus => write!(f, "+"),
             Self::Minus => write!(f, "-"),
             Self::Not => write!(f, "!")
+        }
+    }
+}
+
+impl std::fmt::Display for AddOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Plus => write!(f, "+"),
+            Self::Minus => write!(f, "-")
+        }
+    }
+}
+
+impl std::fmt::Display for MulOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Mul => write!(f, "*"),
+            Self::Div => write!(f, "/"),
+            Self::Mod => write!(f, "%")
         }
     }
 }

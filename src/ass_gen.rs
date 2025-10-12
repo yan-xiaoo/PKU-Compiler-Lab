@@ -192,24 +192,9 @@ impl<'p> AssGen<'p> {
                         let right_exp = dfg.value(binary.rhs());
                         // 操作数的寄存器
                         // 如果操作数是 0，省略寄存器分配
-                        let left_register = if let ValueKind::Integer(i) = left_exp.kind() {
-                            if i.value() == 0 {
-                                String::from("x0")
-                            } else {
-                                self.find_or_allocate_register(&binary.lhs()).expect("程序太复杂了，寄存器数量不足：）")
-                            }
-                        } else {
-                            self.find_or_allocate_register(&binary.lhs()).expect("程序太复杂了，寄存器数量不足：）")
-                        };
-                        let right_register = if let ValueKind::Integer(i) = right_exp.kind() {
-                            if i.value() == 0 {
-                                String::from("x0")
-                            } else {
-                                self.find_or_allocate_register(&binary.rhs()).expect("程序太复杂了，寄存器数量不足：）")
-                            }
-                        } else {
-                            self.find_or_allocate_register(&binary.rhs()).expect("程序太复杂了，寄存器数量不足：）")
-                        };
+                        let left_register = self.get_register_for_value(dfg, &binary.lhs(), true);
+                        let right_register = self.get_register_for_value(dfg, &binary.rhs(), true);
+
                         // 如果操作数表达式是立即数，那么我们就生成立即数赋值语句 li rs,?
                         if let ValueKind::Integer(i) = left_exp.kind() {
                             self.init_register(&left_register, i.value());
@@ -219,6 +204,74 @@ impl<'p> AssGen<'p> {
                         }
                         self.sub_inst(&result_register, &left_register, &right_register);
                     },
+                    BinaryOp::Add => {
+                        let result_register = self.fresh_register(&inst).expect("程序太复杂了，寄存器数量不足以存放所有变量。");
+                        // 操作数表达式
+                        let left_exp = dfg.value(binary.lhs());
+                        let right_exp = dfg.value(binary.rhs());
+                        let left_register = self.get_register_for_value(dfg, &binary.lhs(), true);
+                        let right_register = self.get_register_for_value(dfg, &binary.rhs(), true);
+
+                        // 如果操作数表达式是立即数，那么我们就生成立即数赋值语句 li rs,?
+                        if let ValueKind::Integer(i) = left_exp.kind() {
+                            self.init_register(&left_register, i.value());
+                        }
+                        if let ValueKind::Integer(i) = right_exp.kind() {
+                            self.init_register(&right_register, i.value());
+                        }
+                        self.add_inst(&result_register, &left_register, &right_register);
+                    },
+                    BinaryOp::Mul => {
+                        let result_register = self.fresh_register(&inst).expect("程序太复杂了，寄存器数量不足以存放所有变量。");
+                        // 操作数表达式
+                        let left_exp = dfg.value(binary.lhs());
+                        let right_exp = dfg.value(binary.rhs());
+                        let left_register = self.get_register_for_value(dfg, &binary.lhs(), true);
+                        let right_register = self.get_register_for_value(dfg, &binary.rhs(), true);
+
+                        // 如果操作数表达式是立即数，那么我们就生成立即数赋值语句 li rs,?
+                        if let ValueKind::Integer(i) = left_exp.kind() {
+                            self.init_register(&left_register, i.value());
+                        }
+                        if let ValueKind::Integer(i) = right_exp.kind() {
+                            self.init_register(&right_register, i.value());
+                        }
+                        self.mul_inst(&result_register, &left_register, &right_register);
+                    },
+                    BinaryOp::Div => {
+                        let result_register = self.fresh_register(&inst).expect("程序太复杂了，寄存器数量不足以存放所有变量。");
+                        // 操作数表达式
+                        let left_exp = dfg.value(binary.lhs());
+                        let right_exp = dfg.value(binary.rhs());
+                        let left_register = self.get_register_for_value(dfg, &binary.lhs(), true);
+                        let right_register = self.get_register_for_value(dfg, &binary.rhs(), true);
+
+                        // 如果操作数表达式是立即数，那么我们就生成立即数赋值语句 li rs,?
+                        if let ValueKind::Integer(i) = left_exp.kind() {
+                            self.init_register(&left_register, i.value());
+                        }
+                        if let ValueKind::Integer(i) = right_exp.kind() {
+                            self.init_register(&right_register, i.value());
+                        }
+                        self.div_inst(&result_register, &left_register, &right_register);
+                    },
+                    BinaryOp::Mod => {
+                        let result_register = self.fresh_register(&inst).expect("程序太复杂了，寄存器数量不足以存放所有变量。");
+                        // 操作数表达式
+                        let left_exp = dfg.value(binary.lhs());
+                        let right_exp = dfg.value(binary.rhs());
+                        let left_register = self.get_register_for_value(dfg, &binary.lhs(), true);
+                        let right_register = self.get_register_for_value(dfg, &binary.rhs(), true);
+
+                        // 如果操作数表达式是立即数，那么我们就生成立即数赋值语句 li rs,?
+                        if let ValueKind::Integer(i) = left_exp.kind() {
+                            self.init_register(&left_register, i.value());
+                        }
+                        if let ValueKind::Integer(i) = right_exp.kind() {
+                            self.init_register(&right_register, i.value());
+                        }
+                        self.mod_inst(&result_register, &left_register, &right_register);
+                    }
                     _ => todo!()
                 }
             }
