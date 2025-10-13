@@ -7,6 +7,7 @@ use koopa::ir::{builder::{BasicBlockBuilder, LocalInstBuilder}, BasicBlock, Func
 // 这里显式声明子模块：会加载 "src/ir_gen/unary_statement.rs"
 mod unary_statement;
 mod arithmetic_statement;
+mod logic_statement;
 
 /// IR 生成上下文（面向文本 IR 的阶段性方案）
 /// - 负责集中管理全局状态：临时名分配（%0、%1、...）、符号表、标签分配等
@@ -70,6 +71,6 @@ impl IrGen {
     }
 
     fn generate_expression(&self, function_data: &mut FunctionData, block: &BasicBlock, expr: &function_ast::Exp) -> Value {
-        self.generate_add_statement(function_data, block, &expr.add_exp)
+        self.generate_lor_statement(function_data, block, &expr.l_or_exp)
     }
 }

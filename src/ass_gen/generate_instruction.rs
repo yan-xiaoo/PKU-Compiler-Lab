@@ -57,10 +57,57 @@ impl<'p> AssGen<'p> {
         writeln!(self.out, "\trem\t{},{},{}", result, lhr, rhr).unwrap();
     }
 
+    /// 创建一个 AND 的指令
+    /// 计算 lhr 寄存器 AND rhr 寄存器的值，将其存入 result 寄存器中
+    pub(crate) fn and_inst(&mut self, result: &str, lhr: &str, rhr: &str) {
+        writeln!(self.out, "\tand\t{},{},{}", result, lhr, rhr).unwrap();
+    }
+
+    /// 创建一个 OR 的指令
+    /// 计算 lhr 寄存器 OR rhr 寄存器的值，将其存入 result 寄存器中
+    pub(crate) fn or_inst(&mut self, result: &str, lhr: &str, rhr: &str) {
+        writeln!(self.out, "\tor\t{},{},{}", result, lhr, rhr).unwrap();
+    }
+
     /// 创建一个 neq 0 比较指令
     /// 如果 register 的值不是 0，存储 1 到 register 寄存器中；否则，存储 0 到 register 中。
     pub(crate) fn eq0_inst(&mut self, register: &str) {
         writeln!(self.out, "\tseqz\t{},{}", register, register).unwrap();
+    }
+
+    /// 创建一个 eq 0 比较指令
+    /// 如果 register 的值是 0，存储 1 到 register 寄存器中；否则，存储 1 到 register 中。
+    pub(crate) fn neq0_inst(&mut self, register: &str) {
+        writeln!(self.out, "\tsnez\t{},{}", register, register).unwrap();
+    }
+
+    /// 创建一个小于比较指令
+    /// 如果 lhr < rhr，写入 1 到 result 中，否则写入 0
+    pub(crate) fn lt_inst(&mut self, result: &str, lhr: &str, rhr: &str)  {
+        writeln!(self.out, "\tslt\t{},{},{}", result, lhr, rhr).unwrap();
+    }
+
+    /// 创建一个大于比较指令
+    /// 如果 lhr > rhr，写入 1 到 result 中，否则写入 0
+    pub(crate) fn gt_inst(&mut self, result: &str, lhr: &str, rhr: &str)  {
+        writeln!(self.out, "\tsgt\t{},{},{}", result, lhr, rhr).unwrap();
+    }
+
+    /// 创建一个小于等于比较指令
+    /// 如果 lhr <= rhr，写入 1 到 result 中，否则写入 0
+    pub(crate) fn le_inst(&mut self, result: &str, lhr: &str, rhr: &str)  {
+        // 写一个大于指令
+        self.gt_inst(result, lhr, rhr);
+        // 取反
+        writeln!(self.out, "\tseqz\t{},{}", result, result).unwrap();
+    }
+
+    /// 创建一个大于等于比较指令
+    /// 如果 lhr > rhr，写入 1 到 result 中，否则写入 0
+    pub(crate) fn ge_inst(&mut self, result: &str, lhr: &str, rhr: &str)  {
+        self.lt_inst(result, lhr, rhr);
+        // 取反
+        writeln!(self.out, "\tseqz\t{},{}", result, result).unwrap();
     }
 
     /// 创建一个返回指令

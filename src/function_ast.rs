@@ -45,7 +45,7 @@ pub struct Stmt {
 
 #[derive(Debug)]
 pub struct Exp {
-    pub add_exp: AddExp
+    pub l_or_exp: LOrExp
 }
 
 #[derive(Debug)]
@@ -92,6 +92,48 @@ pub enum AddExp {
     CompoundAddExp(Box<AddExp>, MulExp, AddOp)
 }
 
+#[derive(Debug)]
+pub enum RelOp {
+    // 小于
+    Lt,
+    // 大于
+    Gt,
+    // 小于等于
+    Le,
+    // 大于等于
+    Ge
+}
+
+#[derive(Debug)]
+pub enum RelExp {
+    AddExp(AddExp),
+    CompoundRelExp(Box<RelExp>, AddExp, RelOp)
+}
+
+#[derive(Debug)]
+pub enum EqOp {
+    Eq,
+    Ne
+}
+
+#[derive(Debug)]
+pub enum EqExp {
+    RelExp(RelExp),
+    CompoundEqExp(Box<EqExp>, RelExp, EqOp)
+}
+
+#[derive(Debug)]
+pub enum LAndExp {
+    EqExp(EqExp),
+    CompoundLAndExp(Box<LAndExp>, EqExp)
+}
+
+#[derive(Debug)]
+pub enum LOrExp {
+    LAndExp(LAndExp),
+    CompoundLOrExp(Box<LOrExp>, LAndExp)
+}
+
 impl std::fmt::Display for UnaryOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -117,6 +159,26 @@ impl std::fmt::Display for MulOp {
             Self::Mul => write!(f, "*"),
             Self::Div => write!(f, "/"),
             Self::Mod => write!(f, "%")
+        }
+    }
+}
+
+impl std::fmt::Display for EqOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Eq => write!(f, "="),
+            Self::Ne => write!(f, "!=")
+        }
+    }
+}
+
+impl std::fmt::Display for RelOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Lt => write!(f, "<"),
+            Self::Gt => write!(f, ">"),
+            Self::Le => write!(f, "<="),
+            Self::Ge => write!(f, ">=")
         }
     }
 }
