@@ -1,5 +1,4 @@
 use crate::function_ast::*;
-use lalrpop_util::ParseError;
 
 grammar;
 
@@ -21,18 +20,8 @@ pub CompUnit: CompUnit = {
 };
 
 FuncDef: FuncDef = {
-    <func_type: FuncType> <ident: IDENT> "(" ")" <block: Block> =>? {
-        if ident == "main" {
-            if func_type == FuncType::Int {
-                Ok(FuncDef{ <> })
-            } else {
-                Err(ParseError::User{
-                    error: SysyParseError::InvalidReturnType(ident, func_type.to_string(), "int".to_string())
-                })
-            }
-        } else {
-            Ok(FuncDef{ <> })
-        }
+    <start: @L> <func_type: FuncType> <ident: IDENT> "(" ")" <block: Block> <end: @R> => {
+        FuncDef{ func_type, ident, block, span: Span {start, end} }
     }
 };
 
@@ -41,13 +30,48 @@ FuncType: FuncType = {
     "void" => FuncType::Void,
 };
 
+Decl: Decl = {
+    <start:@L> <const_decl: ConstDecl> <end:@R>=> Decl {const_decl, span: Span{start, end}}
+}
+
+ConstDecl: ConstDecl = {
+    "const" <b_type: BType> <mut const_def: (<ConstDef> ",")*> <end: ConstDef?> ";" => match end {
+        None => ConstDecl {b_type, const_def},
+        Some(end) => {
+            const_def.push(end);
+            ConstDecl {b_type, const_def}
+        }
+    }
+}
+
+BType: BType = {
+    "int" => BType::Int
+}
+
+ConstDef: ConstDef = {
+    <start: @L> <ident: IDENT> "=" <const_init_val: ConstInitVal> <end: @R> => ConstDef { ident, const_init_val, span: Span {start, end} }
+}
+
+ConstInitVal: ConstInitVal = {
+    <const_exp: ConstExp> => ConstInitVal { <> }
+}
+
 Block: Block = {
-    "{" <stmt: Stmt> "}" => Block {<>}
+    "{" <block_items: (<BlockItem>)*> "}" => Block {<>}
 };
 
+BlockItem: BlockItem = {
+    <decl: Decl> => BlockItem::Decl(decl),
+    <stmt: Stmt> => BlockItem::Stmt(stmt)
+}
+
 Stmt: Stmt = {
-    "return" <expr: Exp> ";" => Stmt {<>}
+    <start:@L> "return" <expr: Exp> ";" <end: @R> => Stmt {expr, span: Span{start, end}}
 };
+
+ConstExp: ConstExp = {
+    <exp: Exp> => ConstExp { <> }
+}
 
 Exp: Exp = {
     <l_or_exp: LOrExp> => Exp {<>}
@@ -97,7 +121,12 @@ UnaryExp: UnaryExp = {
 
 PrimaryExp: PrimaryExp = {
     "(" <exp: Exp> ")" => PrimaryExp::Exp(Box::new(<>)),
-    <number: Number> => PrimaryExp::Number(<>)
+    <number: Number> => PrimaryExp::Number(<>),
+    <l_val: LVal> => PrimaryExp::LVal(<>)
+}
+
+LVal: LVal = {
+    <start: @L> <str: IDENT> <end: @R> => LVal::Ident(str, Span {start, end})
 }
 
 UnaryOp: UnaryOp = {

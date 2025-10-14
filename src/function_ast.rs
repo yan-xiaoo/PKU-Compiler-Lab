@@ -24,7 +24,8 @@ pub struct CompUnit {
 pub struct FuncDef {
     pub func_type: FuncType,
     pub ident: String,
-    pub block: Block
+    pub block: Block,
+    pub span: Span
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,14 +34,63 @@ pub enum FuncType {
     Void
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize
+}
+
+#[derive(Debug)]
+pub struct Decl {
+    pub const_decl: ConstDecl,
+    // 语句的范围，用于错误提示
+    pub span: Span
+}
+
+#[derive(Debug)]
+pub struct ConstDecl {
+    pub b_type: BType,
+    pub const_def: Vec<ConstDef>
+}
+
+#[derive(Debug)]
+pub enum BType {
+    Int
+}
+
+#[derive(Debug)]
+pub struct ConstDef {
+    pub ident: String,
+    pub const_init_val: ConstInitVal,
+    pub span: Span
+}
+
+#[derive(Debug)]
+pub struct ConstInitVal {
+    pub const_exp: ConstExp
+}
+
 #[derive(Debug)]
 pub struct Block {
-    pub stmt: Stmt
+    pub block_items: Vec<BlockItem>
+}
+
+#[derive(Debug)]
+pub enum BlockItem {
+    Decl(Decl),
+    Stmt(Stmt)
 }
 
 #[derive(Debug)]
 pub struct Stmt {
-    pub expr: Exp
+    pub expr: Exp,
+    // 语句范围
+    pub span: Span
+}
+
+#[derive(Debug)]
+pub struct ConstExp {
+    pub exp: Exp
 }
 
 #[derive(Debug)]
@@ -55,9 +105,15 @@ pub enum UnaryExp {
 }
 
 #[derive(Debug)]
+pub enum LVal {
+    Ident(String, Span),
+}
+
+#[derive(Debug)]
 pub enum PrimaryExp {
     Exp(Box<Exp>),
-    Number(i32)
+    Number(i32),
+    LVal(LVal)
 }
 
 #[derive(Debug)]
@@ -188,6 +244,14 @@ impl std::fmt::Display for FuncType {
         match self {
             Self::Int => write!(f, "int"),
             Self::Void => write!(f, "void")
+        }
+    }
+}
+
+impl std::fmt::Display for BType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Int => write!(f, "int")
         }
     }
 }

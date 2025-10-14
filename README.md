@@ -11,4 +11,4 @@
 1. main.rs： 处理命令行参数，调用内部编译接口
 2. sysy.lalrpop, function_ast.rs：定义前端处理过程，实现词法分析和语法分析。
 3. ir_gen.rs：从语法分析返回的 AST（对象树）生成 Koopa IR
-4. assembly.rs：从 Koopa IR 结构生成汇编代码。
+4. ass_gen.rs：从 Koopa IR 结构生成汇编代码。
