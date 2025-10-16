@@ -1,5 +1,5 @@
 use std::{cell::RefCell, collections::HashMap};
-use crate::{error_report::{Label, ProblemInfo}, function_ast::{self, BlockItem, CompUnit, FuncDef, FuncType}};
+use crate::{error_report::{Label, ProblemInfo}, function_ast::{self, BlockItem, CompUnit, Decl, FuncDef, FuncType, Stmt}};
 
 use koopa::ir::{builder::{BasicBlockBuilder, LocalInstBuilder, ValueBuilder}, BasicBlock, FunctionData, Program, Type, Value};
 
@@ -9,6 +9,17 @@ mod unary_statement;
 mod arithmetic_statement;
 mod logic_statement;
 mod const_statement;
+mod variable_statement;
+
+
+/// 编译中可能遇到的符号
+#[derive(Debug, Clone)]
+pub enum Symbol {
+    // 常量：直接就是 i32
+    Const(i32),
+    // 变量：存储变量的指令 ID
+    Var(Value)
+}
 
 /// IR 生成上下文（面向文本 IR 的阶段性方案）
 /// - 负责集中管理全局状态：临时名分配（%0、%1、...）、符号表、标签分配等
@@ -22,7 +33,7 @@ pub struct IrGen {
     temp_id: usize,
     label_id: usize,
     /// 常量符号表
-    symbols: RefCell<HashMap<String, i32>>,
+    symbols: RefCell<HashMap<String, Symbol>>,
     /// 编译错误信息
     problems: RefCell<Vec<ProblemInfo>>
 }
@@ -50,11 +61,23 @@ impl IrGen {
 
     /// 创建一个新的常量符号（并赋值）
     /// 如果常量符号已经存在，则返回错误
-    fn new_symbol(&self, name: String, value: i32) -> Result<(), String> {
+    fn new_const_symbol(&self, name: String, value: i32) -> Result<(), String> {
         match self.symbols.borrow_mut().entry(name) {
             std::collections::hash_map::Entry::Occupied(_) => Err("已经存在符号".to_string()),
             std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert(value);
+                entry.insert(Symbol::Const(value));
+                Ok(())
+            }
+        }
+    }
+
+    /// 创建一个新的变量符号
+    /// 如果变量符号已经存在，则返回错误
+    fn new_variable_symbol(&self, name: String, value: Value) -> Result<(), String> {
+        match self.symbols.borrow_mut().entry(name) {
+            std::collections::hash_map::Entry::Occupied(_) => Err("已经存在符号".to_string()),
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(Symbol::Var(value));
                 Ok(())
             }
         }
@@ -67,9 +90,9 @@ impl IrGen {
     }
 
     /// 从符号表中尝试获得一个符号。获得不存在的符号会返回一个错误。
-    fn get_symbol(&self, name: &str) -> Result<i32, String> {
+    fn get_symbol(&self, name: &str) -> Result<Symbol, String> {
         if let Some(data) = self.symbols.borrow().get(name) {
-            Ok(*data)
+            Ok(data.clone())
         } else {
             Err(format!("符号不存在：{}", name))
         }
@@ -102,16 +125,16 @@ impl IrGen {
         function_data.layout_mut().bbs_mut().extend([entry]);
         // 有返回值的情况
         // 生成块失败则立刻返回
+        // 判断 main 是否为 int 返回值
+        if function.ident == "main" && function.func_type != FuncType::Int {
+            self.problems.borrow_mut().push(ProblemInfo::warning("'main' function doesn't return an integer.", 
+                        vec![Label::primary("Note: 'main' function is defined here.", function.span)], None));
+        }
         if let Some(value) = self.generate_block(function_data, &entry, &function.block)? {
             let ret_obj = function_data.dfg_mut().new_value().ret(Some(value));
             function_data.layout_mut().bb_mut(entry).insts_mut().extend([ret_obj]);
         } else {
             // 没返回值的情况，根据返回类型判定 warning
-            // 判断 main 是否为 int 返回值
-            if function.ident == "main" && function.func_type == FuncType::Int {
-                self.problems.borrow_mut().push(ProblemInfo::warning("'main' function doesn't return an integer.", 
-                            vec![Label::primary("Note: 'main' function is defined here.", function.span)], None));
-            }
             // 判断返回值为非 void 的函数是否没有返回内容
             if function.func_type != FuncType::Void {
                 self.problems.borrow_mut().push(ProblemInfo::warning("non-void function doesn't return a value.", 
@@ -139,11 +162,22 @@ impl IrGen {
                     }
                 },
                 BlockItem::Stmt(stmt) => {
-                    let r = self.generate_expression(function_data, ir_block, &stmt.expr);
-                    if let Ok(d) = r {
-                        result = Ok(Some(d));
-                    } else {
-                        return Err(())
+                    match stmt {
+                        // return 语句
+                        Stmt::Exp(exp) => {
+                            let r = self.generate_expression(function_data, ir_block, exp);
+                            if let Ok(d) = r {
+                                result = Ok(Some(d));
+                            } else {
+                                return Err(())
+                            }
+                        }
+                        // 赋值语句
+                        Stmt::LValExp(l_val, exp) => {
+                            self.generate_assign_statement(function_data, ir_block, l_val, exp)?;
+                            // 赋值语句没有返回值
+                            result = Ok(None);
+                        }
                     }
                 }
             };
@@ -153,7 +187,14 @@ impl IrGen {
 
     #[allow(unused_variables)]
     fn generate_declaration(&self, function_data: &mut FunctionData, block: &BasicBlock, declaration: &function_ast::Decl) -> Result<(),()> {
-        self.generate_const_statement(&declaration.const_decl)
+        match declaration {
+            Decl::ConstDecl(const_decl) => {
+                self.generate_const_statement(const_decl)
+            },
+            Decl::VarDecl(var_decl) => {
+                self.generate_variable_statement(function_data, block, var_decl)
+            }
+        }
     }
 
     fn generate_expression(&self, function_data: &mut FunctionData, block: &BasicBlock, expr: &function_ast::Exp) -> Result<Value, ()> {

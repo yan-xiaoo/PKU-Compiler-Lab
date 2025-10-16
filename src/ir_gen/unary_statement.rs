@@ -1,6 +1,6 @@
 use koopa::ir::{builder::{LocalInstBuilder, ValueBuilder}, BasicBlock, BinaryOp, FunctionData, Value};
 
-use crate::{error_report::{Label, ProblemInfo}, function_ast::{LVal, PrimaryExp, UnaryExp, UnaryOp}};
+use crate::{error_report::{Label, ProblemInfo}, function_ast::{LVal, PrimaryExp, UnaryExp, UnaryOp}, ir_gen::Symbol};
 
 use super::IrGen;
 
@@ -62,7 +62,16 @@ impl IrGen {
                     LVal::Ident(string, span) => {
                         let data = self.get_symbol(string);
                         if let Ok(data) = data {
-                            Ok(function_data.dfg_mut().new_value().integer(data))
+                            match data {
+                                // 常数：直接返回
+                                Symbol::Const(const_val) => Ok(function_data.dfg_mut().new_value().integer(const_val)),
+                                // 变量：生成一条读取语句，返回读取结果。
+                                Symbol::Var(val) => {
+                                    let load_instruction = function_data.dfg_mut().new_value().load(val);
+                                    function_data.layout_mut().bb_mut(*block).insts_mut().extend([load_instruction]);
+                                    Ok(load_instruction)
+                                }
+                            }
                         } else {
                             self.problems.borrow_mut().push(ProblemInfo::error(format!("use of undeclared identifier '{}'", string), 
                                                             vec![Label::primary("Note: error occuried here.", *span)], None));

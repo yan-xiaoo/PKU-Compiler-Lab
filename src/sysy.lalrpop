@@ -31,7 +31,8 @@ FuncType: FuncType = {
 };
 
 Decl: Decl = {
-    <start:@L> <const_decl: ConstDecl> <end:@R>=> Decl {const_decl, span: Span{start, end}}
+    <const_decl: ConstDecl> => Decl::ConstDecl(const_decl),
+    <var_decl: VarDecl> => Decl::VarDecl(var_decl)
 }
 
 ConstDecl: ConstDecl = {
@@ -56,6 +57,25 @@ ConstInitVal: ConstInitVal = {
     <const_exp: ConstExp> => ConstInitVal { <> }
 }
 
+VarDecl: VarDecl = {
+    <b_type: BType> <mut var_def: (<VarDef> ",")*> <end: VarDef?> ";" => match end {
+        None => VarDecl {b_type, var_def},
+        Some(end) => {
+            var_def.push(end);
+            VarDecl {b_type, var_def}
+        }
+    }
+}
+
+VarDef: VarDef = {
+    <start: @L> <ident: IDENT> <end: @R> => VarDef {ident, init_val: None, span: Span {start, end}},
+    <start: @L> <ident: IDENT> "=" <init_val: InitVal> <end: @R> => VarDef {ident, init_val: Some(init_val), span: Span{ start, end }}
+}
+
+InitVal: InitVal = {
+    <exp: Exp> => InitVal {<>}
+}
+
 Block: Block = {
     "{" <block_items: (<BlockItem>)*> "}" => Block {<>}
 };
@@ -66,7 +86,8 @@ BlockItem: BlockItem = {
 }
 
 Stmt: Stmt = {
-    <start:@L> "return" <expr: Exp> ";" <end: @R> => Stmt {expr, span: Span{start, end}}
+    "return" <exp: Exp> ";" => Stmt::Exp(exp),
+    <l_val: LVal> "=" <exp: Exp> ";" => Stmt::LValExp(l_val, exp)
 };
 
 ConstExp: ConstExp = {

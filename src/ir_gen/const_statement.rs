@@ -1,4 +1,4 @@
-use crate::{error_report::{Label, ProblemInfo}, function_ast::{AddExp, AddOp, BType, ConstDecl, ConstDef, ConstInitVal, EqExp, EqOp, Exp, LAndExp, LOrExp, LVal, MulExp, MulOp, PrimaryExp, RelExp, RelOp, UnaryExp, UnaryOp}};
+use crate::{error_report::{Label, ProblemInfo}, function_ast::{AddExp, AddOp, BType, ConstDecl, ConstDef, ConstInitVal, EqExp, EqOp, Exp, LAndExp, LOrExp, LVal, MulExp, MulOp, PrimaryExp, RelExp, RelOp, UnaryExp, UnaryOp}, ir_gen::Symbol};
 
 use super::IrGen;
 
@@ -13,7 +13,7 @@ impl IrGen {
     
     pub(super) fn generate_const_definition(&self, _: &BType, def: &ConstDef) -> Result<(),()> {
         let result = self.calculate_const_statement(&def.const_init_val)?;
-        if self.new_symbol(def.ident.clone(), result).is_err() {
+        if self.new_const_symbol(def.ident.clone(), result).is_err() {
             self.problems.borrow_mut().push(ProblemInfo::error(format!("duplicate symbol '{}' found.", def.ident), 
                                vec![Label::primary("Note: duplicate symbol found here.", def.span)], None));
             Err(())
@@ -165,8 +165,18 @@ impl IrGen {
             PrimaryExp::LVal(l_val) => {
                 match l_val {
                     LVal::Ident(s, span) => {
-                        if let Ok(i) = self.get_symbol(s) {
-                            Ok(i)
+                        if let Ok(symbol) = self.get_symbol(s) {
+                            match symbol {
+                                Symbol::Const(const_val) => {
+                                    Ok(const_val)
+                                },
+                                Symbol::Var(_) => {
+                                     self.problems.borrow_mut().push(ProblemInfo::error(format!("variable '{}' found in const value definition", s), 
+                                vec![Label::primary("Note: assignment occuried here.", *span), 
+                                            Label::secondary("Note: only use literals and other const value in const value definition", *span)], None));
+                                    Err(())
+                                }
+                            }
                         } else {
                             self.problems.borrow_mut().push(ProblemInfo::error(format!("use of undeclared identifier '{}'", s), 
                                                             vec![Label::primary("Note: error occuried here.", *span)], None));

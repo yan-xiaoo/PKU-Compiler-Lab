@@ -41,10 +41,9 @@ pub struct Span {
 }
 
 #[derive(Debug)]
-pub struct Decl {
-    pub const_decl: ConstDecl,
-    // 语句的范围，用于错误提示
-    pub span: Span
+pub enum Decl {
+    ConstDecl(ConstDecl),
+    VarDecl(VarDecl)
 }
 
 #[derive(Debug)]
@@ -71,6 +70,24 @@ pub struct ConstInitVal {
 }
 
 #[derive(Debug)]
+pub struct VarDecl {
+    pub b_type: BType,
+    pub var_def: Vec<VarDef>
+}
+
+#[derive(Debug)]
+pub struct VarDef {
+    pub ident: String,
+    pub init_val: Option<InitVal>,
+    pub span: Span
+}
+
+#[derive(Debug)]
+pub struct InitVal {
+    pub exp: Exp
+}
+
+#[derive(Debug)]
 pub struct Block {
     pub block_items: Vec<BlockItem>
 }
@@ -82,10 +99,9 @@ pub enum BlockItem {
 }
 
 #[derive(Debug)]
-pub struct Stmt {
-    pub expr: Exp,
-    // 语句范围
-    pub span: Span
+pub enum Stmt {
+    Exp(Exp),
+    LValExp(LVal, Exp)
 }
 
 #[derive(Debug)]
