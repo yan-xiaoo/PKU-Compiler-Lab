@@ -24,6 +24,8 @@ impl IrGen {
             BType::Int => koopa::ir::Type::get_i32()
         };
         let alloc_instruction = function_data.dfg_mut().new_value().alloc(ty);
+        // 设置 IR 变量名称为语言中定义的变量名称。
+        function_data.dfg_mut().set_value_name(alloc_instruction, Some(format!("@{}", var_def.ident)));
         // 存储符号表
         self.new_variable_symbol(var_def.ident.clone(), alloc_instruction).unwrap();
         // 如果有初始化语句，对初始化语句求值
